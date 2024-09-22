@@ -4,12 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
-    <title>MRZ Duong</title>
+    <title>MRZ Generator</title>
 </head>
 <body>
-    <div id="mrzOutput"></div> 
+    <h1>MRZ Generator</h1>
+    <div id="mrzOutput"></div> <!-- Kết quả sẽ được hiển thị tại đây -->
 
     <script>
+        // Lấy các tham số từ URL
         function getQueryParams() {
             const params = new URLSearchParams(window.location.search);
             return {
@@ -26,6 +28,7 @@
             };
         }
 
+        // Hàm khởi tạo Pyodide và tính toán MRZ
         async function generateMRZ() {
             const params = getQueryParams();
             let pyodide = await loadPyodide();
@@ -45,6 +48,7 @@
             pyodide.globals.set('optional_data1', params.optional_data1);
             pyodide.globals.set('optional_data2', params.optional_data2);
 
+            // Chạy mã Python để tạo MRZ
             pyodide.runPython(`
                 from mrz.generator.td1 import TD1CodeGenerator
                 from mrz.generator.td2 import TD2CodeGenerator
@@ -52,6 +56,7 @@
                 from mrz.generator.mrva import MRVACodeGenerator
                 from mrz.generator.mrvb import MRVBCodeGenerator
 
+                # Tạo MRZ theo loại tài liệu được chọn
                 if doc_type == 'TD1':
                     result = str(TD1CodeGenerator('I', country_code, document_number, birth_date, sex, expiry_date, country_code, surname, given_names, optional_data1, optional_data2))
                 elif doc_type == 'TD2':
@@ -70,6 +75,7 @@
             document.getElementById('mrzOutput').textContent = mrzResult.replace(/\n/g, '\n');
         }
 
+        // Gọi hàm khi trang được load
         generateMRZ();
     </script>
 </body>
