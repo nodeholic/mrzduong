@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    <title>MRZ Duong</title>
+</head>
+<body>
+    <div id="mrzOutput"></div> 
+
+    <script>
+        function getQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                doc_type: params.get('doc_type') || 'P',
+                country_code: params.get('country_code') || 'GBR',
+                surname: params.get('surname') || 'SXNGND',
+                given_names: params.get('given_names') || 'MGGPJ',
+                document_number: params.get('document_number') || 'K1RELFC7',
+                birth_date: params.get('birth_date') || '210118',
+                sex: params.get('sex') || 'F',
+                expiry_date: params.get('expiry_date') || '240710',
+                optional_data1: params.get('optional_data1') || '',
+                optional_data2: params.get('optional_data2') || ''
+            };
+        }
+
+        async function generateMRZ() {
+            const params = getQueryParams();
+            let pyodide = await loadPyodide();
+            await pyodide.loadPackage('micropip');
+            const micropip = pyodide.pyimport('micropip');
+            await micropip.install('mrz');
+
+            // Gán các biến vào Python
+            pyodide.globals.set('doc_type', params.doc_type);
+            pyodide.globals.set('country_code', params.country_code);
+            pyodide.globals.set('surname', params.surname);
+            pyodide.globals.set('given_names', params.given_names);
+            pyodide.globals.set('document_number', params.document_number);
+            pyodide.globals.set('birth_date', params.birth_date);
+            pyodide.globals.set('sex', params.sex);
+            pyodide.globals.set('expiry_date', params.expiry_date);
+            pyodide.globals.set('optional_data1', params.optional_data1);
+            pyodide.globals.set('optional_data2', params.optional_data2);
+
+            pyodide.runPython(`
+                from mrz.generator.td1 import TD1CodeGenerator
+                from mrz.generator.td2 import TD2CodeGenerator
+                from mrz.generator.td3 import TD3CodeGenerator
+                from mrz.generator.mrva import MRVACodeGenerator
+                from mrz.generator.mrvb import MRVBCodeGenerator
+
+                if doc_type == 'TD1':
+                    result = str(TD1CodeGenerator('I', country_code, document_number, birth_date, sex, expiry_date, country_code, surname, given_names, optional_data1, optional_data2))
+                elif doc_type == 'TD2':
+                    result = str(TD2CodeGenerator('I', country_code, surname, given_names, document_number, country_code, birth_date, sex, expiry_date, optional_data1))
+                elif doc_type == 'TD3':  # Hộ chiếu TD3 sử dụng 'P'
+                    result = str(TD3CodeGenerator('P', country_code, surname, given_names, document_number, country_code, birth_date, sex, expiry_date, optional_data1))
+                elif doc_type == 'MRVA':
+                    result = str(MRVACodeGenerator('V', country_code, surname, given_names, document_number, country_code, birth_date, sex, expiry_date, optional_data1))
+                elif doc_type == 'MRVB':
+                    result = str(MRVBCodeGenerator('V', country_code, surname, given_names, document_number, country_code, birth_date, sex, expiry_date, optional_data1))
+                else:
+                    result = 'Invalid document type'
+            `);
+
+            const mrzResult = pyodide.globals.get('result');
+            document.getElementById('mrzOutput').textContent = mrzResult.replace(/\n/g, '\n');
+        }
+
+        generateMRZ();
+    </script>
+</body>
+</html>
